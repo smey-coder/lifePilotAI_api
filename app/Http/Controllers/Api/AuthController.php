@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash; 
 use Illuminate\Support\Facades\Password; 
 use Illuminate\Support\Facades\Auth; 
+use Spatie\Permission\Models\Role;
 class AuthController extends Controller
 {
     public function register(Request $request){
@@ -67,6 +68,9 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password)
         ]);
+        // Assign a default role (e.g., 'user')
+        $user->assignRole('User');
+
         return response()->json([
             'success' => true,
             'message' => 'User registered successfully',
@@ -106,15 +110,39 @@ class AuthController extends Controller
         ]);
         
     }
-    public function dashboard(Request $request){
+    public function dashboard(Request $request)
+    {
+        try {
+            $user = $request->user();
 
-        $user_login = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Welcome to the dashboard',
-            'data' => $user_login,
-        ]);
+            // 1. ទាញយក Roles និង Permissions ពី Spatie
+            $roles = $user->getRoleNames(); // ទទួលបាន ["Admin"]
+            $permissions = $user->getAllPermissions()->pluck('name'); // ទទួលបាន ["permissions.view", ...]
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User dashboard data retrieved successfully',
+                'data' => [
+                    'user' => $user,
+                    'roles' => $roles,
+                    'permissions' => $permissions,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'បរាជ័យក្នុងការទាញយកទិន្នន័យអ្នកប្រើប្រាស់',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function logout(Request $request){
@@ -182,239 +210,5 @@ class AuthController extends Controller
                 'message' => 'Failed to reset password.'
             ], 500);
         }
-    }
-    public function googleLogin(Request $request){
-        $request->validate([
-            'google_id' => 'required|string|unique:users,google_id',
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|ends_with:@gmail.com|unique:users,email',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'google_id' => $request->google_id,
-            // You can set a default password or leave it null
-            'password' => Hash::make(uniqid()), // Random password
-        ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged in with Google successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
-        ]);
-    }
-    public function googleLoginExisting(Request $request){
-        $request->validate([
-            'google_id' => 'required|string|exists:users,google_id',
-        ]);
-
-        $user = User::where('google_id', $request->google_id)->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found with the provided Google ID.'
-            ], 404);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged in with Google successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
-        ]);
-    }
-    public function googleLogout(Request $request){
-        $request->user()->currentAccessToken()->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged out from Google successfully'
-        ]);
-    }
-    public function googleForgotPassword(Request $request){
-        $request->validate([
-            'google_id' => 'required|string|exists:users,google_id',
-        ]);
-
-        $user = User::where('google_id', $request->google_id)->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found with the provided Google ID.'
-            ], 404);
-        }
-
-        // Here you can implement your logic to send a password reset link or token to the user's email.
-        // For demonstration, we'll just return a success message.
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Password reset link sent to your email associated with Google account.'
-        ]);
-    }
-    public function googleResetPassword(Request $request){
-        $request->validate([
-            'google_id' => 'required|string|exists:users,google_id',
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'regex:/[0-9]/',
-                'regex:/[a-z]/',
-                'regex:/[A-Z]/',
-                'regex:/[!@#$%^&*()-+]/',
-                'confirmed',      // Must match password_confirmation
-            ],
-        ]);
-
-        $user = User::where('google_id', $request->google_id)->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found with the provided Google ID.'
-            ], 404);
-        }
-
-        $user->password = Hash::make($request->password);
-        $user->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Password has been reset successfully for the Google account.'
-        ]);
-    }
-    public function googleDashboard(Request $request){
-        $user_login = $request->user();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Welcome to the Google dashboard',
-            'data' => $user_login,
-        ]);
-    }
-    public function googleRegister(Request $request){
-        $request->validate([
-            'google_id' => 'required|string|unique:users,google_id',
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|ends_with:@gmail.com|unique:users,email',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'google_id' => $request->google_id,
-            // You can set a default password or leave it null
-            'password' => Hash::make(uniqid()), // Random password
-        ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User registered with Google successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
-        ]);
-    }
-    public function googleLoginOrRegister(Request $request){
-        $request->validate([
-            'google_id' => 'required|string',
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|ends_with:@gmail.com',
-        ]);
-
-        $user = User::where('google_id', $request->google_id)->first();
-
-        if (!$user) {
-            // If user doesn't exist, create a new one
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'google_id' => $request->google_id,
-                // You can set a default password or leave it null
-                'password' => Hash::make(uniqid()), // Random password
-            ]);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged in or registered with Google successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
-        ]);
-    }
-    public function googleLoginOrRegisterExisting(Request $request){
-        $request->validate([
-            'google_id' => 'required|string|exists:users,google_id',
-        ]);
-
-        $user = User::where('google_id', $request->google_id)->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found with the provided Google ID.'
-            ], 404);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged in with Google successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
-        ]);
-    }
-    public function googleLoginOrRegisterNew(Request $request){
-        $request->validate([
-            'google_id' => 'required|string',
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|ends_with:@gmail.com',
-        ]);
-
-        $user = User::where('google_id', $request->google_id)->first();
-
-        if (!$user) {
-            // If user doesn't exist, create a new one
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'google_id' => $request->google_id,
-                // You can set a default password or leave it null
-                'password' => Hash::make(uniqid()), // Random password
-            ]);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged in or registered with Google successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ],
-        ]);
     }
 }
