@@ -9,6 +9,9 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\NoteController;
+use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\GoalController;
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -62,4 +65,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notes/{id}', [NoteController::class, 'update']);
     Route::patch('/notes/{id}/pin', [NoteController::class, 'togglePin']);
     Route::delete('/notes/{id}', [NoteController::class, 'destroy']);
+
+    // Intelligent Reminders Routes
+    Route::get('/reminders', [ReminderController::class, 'index']);
+    Route::post('/reminders', [ReminderController::class, 'store']);
+    Route::get('/reminders/{id}', [ReminderController::class, 'show']);
+    Route::put('/reminders/{id}', [ReminderController::class, 'update']);
+    Route::patch('/reminders/{id}/toggle', [ReminderController::class, 'toggleTriggered']);
+    Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
+
+    // Goal Management Routes
+    Route::get('/goals', [GoalController::class, 'index']);
+    Route::post('/goals', [GoalController::class, 'store']);
+    Route::get('/goals/{id}', [GoalController::class, 'show']);
+    Route::put('/goals/{id}', [GoalController::class, 'update']);
+    Route::delete('/goals/{id}', [GoalController::class, 'destroy']);
+    Route::patch('milestones/{milestone}/toggle', [GoalController::class, 'toggleMilestone']);
 });
