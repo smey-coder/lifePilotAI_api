@@ -11,7 +11,12 @@ use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\GoalController;
-
+use App\Http\Controllers\Api\HabitController;
+use App\Http\Controllers\Api\UserDashboardController;
+use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\UserSettingsController;    
+use App\Http\Controllers\Api\ProfileController;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -81,4 +86,38 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/goals/{id}', [GoalController::class, 'update']);
     Route::delete('/goals/{id}', [GoalController::class, 'destroy']);
     Route::patch('milestones/{milestone}/toggle', [GoalController::class, 'toggleMilestone']);
+
+    //Habit Management Routes
+    Route::get('/habits', [HabitController::class, 'index']);
+    Route::post('/habits', [HabitController::class, 'store']);
+    Route::get('/habits/{id}', [HabitController::class, 'show']);
+    Route::put('/habits/{id}', [HabitController::class, 'update']);
+    Route::post('/habits/{id}/toggle', [HabitController::class, 'toggleLog']);
+    Route::delete('/habits/{id}', [HabitController::class, 'destroy']);
+
+    // Standard User Dashboard API
+    Route::get('/dashboard/user', [UserDashboardController::class, 'index']);
+
+    // Admin Dashboard API (Protected by 'role:admin' or 'permission:view-admin-dashboard')
+    Route::middleware(['role:Admin'])->group(function () {
+        Route::get('/dashboard/admin', [AdminDashboardController::class, 'index']);
+    });
+
+    // 2. Admin Only (Global Platform Settings)
+    Route::middleware(['auth:sanctum', 'role:Admin'])->prefix('admin')->group(function () {
+        Route::get('/settings', [SettingController::class, 'index']);
+        Route::put('/settings', [SettingController::class, 'update']);
+        Route::post('/settings/clear-cache', [SettingController::class, 'clearCache']);
+    });
+
+    // 1. All Authenticated Users (User Settings)
+    Route::middleware(['auth:sanctum'])->prefix('user')->group(function () {
+        Route::get('/settings', [UserSettingsController::class, 'show']);
+        Route::put('/profile', [UserSettingsController::class, 'updateProfile']);
+        Route::put('/password', [UserSettingsController::class, 'updatePassword']);
+    });
+
+    // User Profile API
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile', [ProfileController::class, 'update']);
 });

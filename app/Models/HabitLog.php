@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HabitLog extends Model
 {
@@ -15,10 +16,10 @@ class HabitLog extends Model
     ];
 
     protected $casts = [
-        'completed_date' => 'date',
+        'completed_date' => 'date:Y-m-d',
     ];
 
-    public function habit()
+    public function habit(): BelongsTo
     {
         return $this->belongsTo(Habit::class);
     }
