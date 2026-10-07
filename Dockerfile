@@ -1,3 +1,4 @@
+
 # ==============================================================================
 # Stage 1: Build Dependencies
 # ==============================================================================
@@ -21,7 +22,7 @@ FROM php:8.4-cli-alpine
 
 ENV PORT=10000
 
-# ដំឡើងដេប៉ង់ដង់ និង PHP Extensions សម្រាប់ PostgreSQL & LifePilot AI
+# Install dependencies and PHP extensions for PostgreSQL & LifePilot AI
 RUN apk add --no-cache \
         icu-dev \
         libzip-dev \
@@ -42,7 +43,7 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# ចម្លង Vendor និងប្រភពកូដចូលក្នុង Container
+# Copy dependencies and application files
 COPY --from=vendor /app/vendor /app/vendor
 COPY . /app
 
@@ -50,21 +51,15 @@ COPY . /app
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer dump-autoload --optimize --no-dev && rm /usr/bin/composer
 
-# រៀបចំ Storage Link និងកំណត់សិទ្ធិ (Permissions)
+# Storage Link & Permissions Setup
 RUN rm -rf /app/public/storage \
     && php artisan storage:link \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/public \
     && chmod -R 775 /app/storage /app/bootstrap/cache /app/public
 
-# Optimize Laravel Runtime Caching ដើម្បីឱ្យការឆ្លើយតប Request លឿន
-RUN php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
-
 EXPOSE 10000
 
-# លុប Entrypoint ចាស់ចោល
 ENTRYPOINT []
 
-# ដំណើរការ Server ដោយប្រើ PHP Router ជំនួសឱ្យ artisan serve
+# Serve requests through PHP's built-in router instead of artisan serve
 CMD ["php", "-S", "0.0.0.0:10000", "-t", "public", "public/index.php"]
