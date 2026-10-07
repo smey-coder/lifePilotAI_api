@@ -1,4 +1,3 @@
-
 # ==============================================================================
 # Stage 1: Build Dependencies
 # ==============================================================================
@@ -16,13 +15,14 @@ RUN composer install \
     --no-scripts
 
 # ==============================================================================
-# Stage 2: Runtime Environment
+# Stage 2: Runtime Environment (FrankenPHP)
 # ==============================================================================
-FROM php:8.4-cli-alpine
+FROM dunglas/frankenphp:latest-php8.4-alpine
 
 ENV PORT=10000
+ENV SERVER_NAME=":10000"
 
-# Install dependencies and PHP extensions for PostgreSQL & LifePilot AI
+# ដំឡើងដេប៉ង់ដង់ និង PHP Extensions សម្រាប់ PostgreSQL & LifePilot AI
 RUN apk add --no-cache \
         icu-dev \
         libzip-dev \
@@ -43,15 +43,15 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy dependencies and application files
+# ចម្លង Vendor និងប្រភពកូដចូលក្នុង Container
 COPY --from=vendor /app/vendor /app/vendor
 COPY . /app
 
-# Optimize Composer Autoloader
+# Optimize Autoloader
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer dump-autoload --optimize --no-dev && rm /usr/bin/composer
 
-# Storage Link & Permissions Setup
+# រៀបចំ Storage Link និង Permissions
 RUN rm -rf /app/public/storage \
     && php artisan storage:link \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/public \
@@ -59,7 +59,5 @@ RUN rm -rf /app/public/storage \
 
 EXPOSE 10000
 
-ENTRYPOINT []
-
-# Serve requests through PHP's built-in router instead of artisan serve
-CMD ["php", "-S", "0.0.0.0:10000", "-t", "public", "public/index.php"]
+# រត់ FrankenPHP Server Directly លើ Folder public
+CMD ["frankenphp", "php-server", "--root", "public"]
