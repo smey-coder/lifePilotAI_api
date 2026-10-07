@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UserSettingsController;    
 use App\Http\Controllers\Api\ProfileController;
+
+use Illuminate\Support\Facades\Artisan;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -78,6 +80,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/reminders/{id}', [ReminderController::class, 'update']);
     Route::patch('/reminders/{id}/toggle', [ReminderController::class, 'toggleTriggered']);
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
+    Route::get('/run-scheduler', function () {
+        Artisan::call('schedule:run');
+        return response()->json(['status' => 'Scheduler executed successfully']);
+    });
 
     // Goal Management Routes
     Route::get('/goals', [GoalController::class, 'index']);
