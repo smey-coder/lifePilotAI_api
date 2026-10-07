@@ -15,14 +15,15 @@ RUN composer install \
     --no-scripts
 
 # ==============================================================================
-# Stage 2: Runtime Environment
+# Stage 2: Fast Runtime Environment (Nginx + PHP-FPM)
 # ==============================================================================
-FROM php:8.4-cli-alpine
+FROM php:8.4-fpm-alpine
 
 ENV PORT=10000
 
-# ដំឡើង PHP Extensions សម្រាប់ PostgreSQL & LifePilot AI
+# Install Nginx, OPcache, and required PHP extensions for PostgreSQL
 RUN apk add --no-cache \
+        nginx \
         icu-dev \
         libzip-dev \
         postgresql-dev \
@@ -42,22 +43,36 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# ចម្លង Vendor និងប្រភពកូដចូលក្នុង Container
+# Copy Composer dependencies and application source code
 COPY --from=vendor /app/vendor /app/vendor
 COPY . /app
 
-# Optimize Autoloader
+# Optimize Composer Autoloader
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer dump-autoload --optimize --no-dev && rm /usr/bin/composer
 
-# រៀបចំ Storage Link និង Permissions
+# Storage Link & Permissions Setup
 RUN rm -rf /app/public/storage \
     && php artisan storage:link \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/public \
     && chmod -R 775 /app/storage /app/bootstrap/cache /app/public
 
+# Configure Nginx to pass PHP requests directly to PHP-FPM
+RUN echo 'server { \
+    listen 10000; \
+    root /app/public; \
+    index index.php; \
+    location / { \
+        try_files $uri $uri/ /index.php?$query_string; \
+    } \
+    location ~ \.php$ { \
+        fastcgi_pass 127.0.0.1:9000; \
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; \
+        include fastcgi_params; \
+    } \
+}' > /etc/nginx/http.d/default.conf
+
 EXPOSE 10000
 
-# បញ្ជាក់ Entrypoint និងប្រើប្រាស់ PHP ផ្ទាល់ដើម្បីរត់ Server
-ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["php -S 0.0.0.0:10000 -t public public/index.php"]
+# Start both PHP-FPM and Nginx simultaneously
+CMD php-fpm -D && nginx -g "daemon off;"
