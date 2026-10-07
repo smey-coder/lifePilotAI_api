@@ -81,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/reminders/{id}', [ReminderController::class, 'update']);
     Route::patch('/reminders/{id}/toggle', [ReminderController::class, 'toggleTriggered']);
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
+    
     Route::get('/run-scheduler', function () {
         try {
             // ១. លុប cache:clear ចេញ ដើម្បីការពារ Permission Denied Exception លើ Render
