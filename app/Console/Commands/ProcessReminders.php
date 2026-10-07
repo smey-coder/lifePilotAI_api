@@ -7,6 +7,7 @@ use App\Models\Reminder;
 use App\Mail\ReminderEmail;
 use App\Services\TelegramService;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class ProcessReminders extends Command
@@ -36,13 +37,18 @@ class ProcessReminders extends Command
         foreach ($reminders as $reminder) {
             $user = $reminder->user;
 
-            // 1. ដំណើរការផ្ញើ Email
+            // 1. ដំណើរការផ្ញើ Email (ប្រើ try-catch ដើម្បីការពារកុំឱ្យស្ទះដំណើរការ)
             if ($reminder->channel === 'email') {
                 $userEmail = $user ? $user->email : null;
                 if ($userEmail) {
-                    Mail::to($userEmail)->send(new ReminderEmail($reminder));
-                    $emailCount++;
-                    $this->info("Sent EMAIL to: {$userEmail} (ID: {$reminder->id})");
+                    try {
+                        Mail::to($userEmail)->send(new ReminderEmail($reminder));
+                        $emailCount++;
+                        $this->info("Sent EMAIL to: {$userEmail} (ID: {$reminder->id})");
+                    } catch (\Exception $e) {
+                        Log::error("Failed to send EMAIL for Reminder ID {$reminder->id}: " . $e->getMessage());
+                        $this->error("Failed to send EMAIL (ID: {$reminder->id}). Check logs.");
+                    }
                 }
             }
 
@@ -50,7 +56,7 @@ class ProcessReminders extends Command
             if ($reminder->channel === 'telegram') {
                 $chatId = ($user && $user->telegram_chat_id) 
                     ? $user->telegram_chat_id 
-                    : env('TELEGRAM_DEFAULT_CHAT_ID');
+                    : (config('services.telegram.default_chat_id') ?? env('TELEGRAM_DEFAULT_CHAT_ID'));
 
                 if ($chatId) {
                     $formattedDate = Carbon::parse($reminder->remind_at)->format('Y-m-d h:i A');
