@@ -17,12 +17,12 @@ RUN composer install \
 # ==============================================================================
 # Stage 2: Runtime Environment (FrankenPHP)
 # ==============================================================================
-FROM dunglas/frankenphp:latest-php8.4-alpine
+FROM dunglas/frankenphp:1-php8.4-alpine
 
 ENV PORT=10000
 ENV SERVER_NAME=":10000"
 
-# ដំឡើងដេប៉ង់ដង់ និង PHP Extensions សម្រាប់ PostgreSQL & LifePilot AI
+# Install system dependencies and required PHP extensions
 RUN apk add --no-cache \
         icu-dev \
         libzip-dev \
@@ -43,7 +43,7 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# ចម្លង Vendor និងប្រភពកូដចូលក្នុង Container
+# Copy Vendor and Application Source Code
 COPY --from=vendor /app/vendor /app/vendor
 COPY . /app
 
@@ -51,7 +51,7 @@ COPY . /app
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer dump-autoload --optimize --no-dev && rm /usr/bin/composer
 
-# រៀបចំ Storage Link និង Permissions
+# Storage Link & Permissions Setup
 RUN rm -rf /app/public/storage \
     && php artisan storage:link \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache /app/public \
@@ -59,5 +59,4 @@ RUN rm -rf /app/public/storage \
 
 EXPOSE 10000
 
-# រត់ FrankenPHP Server Directly លើ Folder public
 CMD ["frankenphp", "php-server", "--root", "public"]
