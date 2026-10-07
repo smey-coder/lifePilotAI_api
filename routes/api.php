@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\UserSettingsController;
 use App\Http\Controllers\Api\ProfileController;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -82,6 +83,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
     Route::get('/run-scheduler', function () {
         try {
+            // Clear cache ដើម្បីដោះ Lock (Mutex) ដែលស្ទះ
+            Artisan::call('cache:clear');
+
             // រត់ Command ដោយផ្ទាល់
             $exitCode = Artisan::call('reminders:process');
             $output = Artisan::output();
@@ -92,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 'output' => trim($output)
             ]);
         } catch (\Exception $e) {
+            Log::error("Scheduler Error: " . $e->getMessage());
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage()
