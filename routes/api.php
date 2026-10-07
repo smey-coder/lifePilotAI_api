@@ -83,10 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
     Route::get('/run-scheduler', function () {
         try {
-            // Clear cache
-            Artisan::call('cache:clear');
-
-            // រត់ Process Reminders
+            // ១. លុប cache:clear ចេញ ដើម្បីការពារ Permission Denied Exception លើ Render
+            // ២. រត់ Artisan Command ដោយផ្ទាល់
             $exitCode = Artisan::call('reminders:process');
             $output = Artisan::output();
 
@@ -95,11 +93,12 @@ Route::middleware('auth:sanctum')->group(function () {
                 'exit_code' => $exitCode,
                 'output' => trim($output)
             ], 200);
+
         } catch (\Throwable $e) {
-            // កត់ត្រាចូល Render Log
+            // កត់ត្រាចូល Render Logs
             Log::error("Scheduler Error: " . $e->getMessage());
 
-            // Return status 200 ជាមួយ Error message ដើម្បីកុំឱ្យ Cron-job.org បាញ់ Error 500
+            // បង្វិល HTTP Status 200 មកវិញ ដើម្បីកុំឱ្យ Cron-job.org ចាប់បាន Error 500
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage(),
