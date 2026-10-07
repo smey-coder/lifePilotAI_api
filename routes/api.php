@@ -83,10 +83,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
     Route::get('/run-scheduler', function () {
         try {
-            // Clear cache ដើម្បីដោះ Lock (Mutex) ដែលស្ទះ
+            // Clear cache
             Artisan::call('cache:clear');
 
-            // រត់ Command ដោយផ្ទាល់
+            // រត់ Process Reminders
             $exitCode = Artisan::call('reminders:process');
             $output = Artisan::output();
 
@@ -94,13 +94,18 @@ Route::middleware('auth:sanctum')->group(function () {
                 'status' => 'success',
                 'exit_code' => $exitCode,
                 'output' => trim($output)
-            ]);
-        } catch (\Exception $e) {
+            ], 200);
+        } catch (\Throwable $e) {
+            // កត់ត្រាចូល Render Log
             Log::error("Scheduler Error: " . $e->getMessage());
+
+            // Return status 200 ជាមួយ Error message ដើម្បីកុំឱ្យ Cron-job.org បាញ់ Error 500
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 200);
         }
     });
 
