@@ -83,31 +83,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
     
     Route::get('/run-scheduler', function () {
-        try {
-            // ១. លុប cache:clear ចេញ ដើម្បីការពារ Permission Denied Exception លើ Render
-            // ២. រត់ Artisan Command ដោយផ្ទាល់
-            $exitCode = Artisan::call('reminders:process');
-            $output = Artisan::output();
+    // កំណត់ Maximum Execution Time ត្រឹម 60 វិនាទី
+    set_time_limit(60);
 
-            return response()->json([
-                'status' => 'success',
-                'exit_code' => $exitCode,
-                'output' => trim($output)
-            ], 200);
+    try {
+        // រត់ Process Reminders
+        $exitCode = Artisan::call('reminders:process');
+        $output = Artisan::output();
 
-        } catch (\Throwable $e) {
-            // កត់ត្រាចូល Render Logs
-            Log::error("Scheduler Error: " . $e->getMessage());
+        return response()->json([
+            'status' => 'success',
+            'exit_code' => $exitCode,
+            'output' => trim($output)
+        ], 200);
 
-            // បង្វិល HTTP Status 200 មកវិញ ដើម្បីកុំឱ្យ Cron-job.org ចាប់បាន Error 500
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 200);
-        }
-    });
+    } catch (\Throwable $e) {
+        Log::error("Scheduler Error: " . $e->getMessage());
+
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 200);
+    }
+});
 
     // Goal Management Routes
     Route::get('/goals', [GoalController::class, 'index']);
