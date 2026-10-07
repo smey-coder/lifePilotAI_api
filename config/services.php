@@ -43,5 +43,8 @@ return [
             'verify' => false, // រំលងការពិនិត្យ SSL Certificate លើ Localhost
         ],
     ],
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+    ],
 
 ];

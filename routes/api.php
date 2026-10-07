@@ -81,13 +81,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/reminders/{id}/toggle', [ReminderController::class, 'toggleTriggered']);
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
     Route::get('/run-scheduler', function () {
-        // ហៅ Scheduler ឱ្យរត់ Command ទាំងឡាយណាដែលបាន Set ក្នុង routes/console.php
-        Artisan::call('schedule:run');
-        
-        return response()->json([
-            'status' => 'Scheduler executed successfully',
-            'output' => Artisan::output() // បន្ថែម Log Output ដើម្បីងាយស្រួលមើល Response
-        ]);
+        try {
+            // រត់ Command ដោយផ្ទាល់
+            $exitCode = Artisan::call('reminders:process');
+            $output = Artisan::output();
+
+            return response()->json([
+                'status' => 'success',
+                'exit_code' => $exitCode,
+                'output' => trim($output)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     });
 
     // Goal Management Routes
