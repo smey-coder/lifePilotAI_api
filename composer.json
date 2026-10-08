@@ -11,9 +11,13 @@
         "laravel/sanctum": "^4.3",
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0",
+        "nyholm/psr7": "^1.8",
+        "railsware/mailtrap-php": "^3.16",
         "resend/resend-laravel": "^1.6",
         "spatie/laravel-permission": "^8.3",
-        "symfony/brevo-mailer": "^8.1"
+        "symfony/brevo-mailer": "^8.1",
+        "symfony/http-client": "^8.1",
+        "symfony/mailer": "^8.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

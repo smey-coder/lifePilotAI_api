@@ -169,6 +169,14 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
         ],
+        // start mailtrap transport
+        'mailtrap-sdk' => [
+            'transport' => 'mailtrap-sdk'
+        ],
+        'mailtrap' => [
+            'transport' => 'mailtrap',
+            'apiKey' => env('MAILTRAP_API_KEY'),
+        ],
 
     ],
 
