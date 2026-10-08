@@ -12,7 +12,8 @@
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0",
         "resend/resend-laravel": "^1.6",
-        "spatie/laravel-permission": "^8.3"
+        "spatie/laravel-permission": "^8.3",
+        "symfony/brevo-mailer": "^8.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
