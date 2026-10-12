@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UserSettingsController;    
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\AIAssistantController;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -148,4 +149,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // User Profile API
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
+
+    // AI Route
+    Route::post('/ai/chat', [AIAssistantController::class, 'sendMessage']);
+    Route::get('/ai/threads', [AIAssistantController::class, 'getThreads']);
+    Route::get('/ai/threads/{threadId}/messages', [AIAssistantController::class, 'getMessages']);
+    // 🟢 ត្រូវមាន Route នេះសម្រាប់លុប Thread
+    Route::delete('/ai/threads/{threadId}', [AIAssistantController::class, 'destroyThread']);
 });

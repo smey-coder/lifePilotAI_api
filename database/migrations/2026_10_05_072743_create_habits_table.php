@@ -17,14 +17,12 @@ return new class extends Migration
             $table->integer('streak_count')->default(0); // ចំនួនថ្ងៃដែលធ្វើបានជាប់ៗគ្នា 🔥
             $table->timestamps();
         });
-
         // Table សម្រាប់កត់ត្រារាល់ពេល Mark Complete ប្រចាំថ្ងៃ
         Schema::create('habit_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('habit_id')->constrained()->onDelete('cascade');
             $table->date('completed_date');
             $table->timestamps();
-
             $table->unique(['habit_id', 'completed_date']); // ការពារកុំឱ្យ Mark ជាន់គ្នា 1 ថ្ងៃ 2 ដង
         });
     }
